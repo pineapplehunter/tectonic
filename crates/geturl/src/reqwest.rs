@@ -14,7 +14,7 @@ use tectonic_status_base::{tt_note, StatusBackend};
 
 use crate::{GetUrlBackend, RangeReader};
 
-const MAX_HTTP_REDIRECTS_ALLOWED: usize = 10;
+// const MAX_HTTP_REDIRECTS_ALLOWED: usize = 10;
 
 /// URL-get backend implemented using the `reqwest` crate.
 #[derive(Debug, Default)]
@@ -39,35 +39,35 @@ impl GetUrlBackend for ReqwestBackend {
     fn resolve_url(&mut self, url: &str, status: &mut dyn StatusBackend) -> Result<String> {
         tt_note!(status, "connecting to {}", url);
 
-        // First, we actually do a HEAD request on the URL for the data file.
-        // If it's redirected, we update our URL to follow the redirects. If
-        // we didn't do this separately, the index file would have to be the
-        // one with the redirect setup, which would be confusing and annoying.
-        let redirect_policy = Policy::custom(|attempt| {
-            // In the process of resolving the file url it might be necessary
-            // to stop at a certain level of redirection. This might be required
-            // because some hosts might redirect to a version of the url where
-            // it isn't possible to select the index file by appending .index.gz.
-            // (This mostly happens because CDNs redirect to the file hash.)
-            if attempt.previous().len() >= MAX_HTTP_REDIRECTS_ALLOWED {
-                attempt.error("too many redirections")
-            } else if let Some(segments) = attempt.url().clone().path_segments() {
-                let follow = segments
-                    .last()
-                    .map(|file| file.contains('.'))
-                    .unwrap_or(true);
-                if follow {
-                    attempt.follow()
-                } else {
-                    attempt.stop()
-                }
-            } else {
-                attempt.follow()
-            }
-        });
+        // // First, we actually do a HEAD request on the URL for the data file.
+        // // If it's redirected, we update our URL to follow the redirects. If
+        // // we didn't do this separately, the index file would have to be the
+        // // one with the redirect setup, which would be confusing and annoying.
+        // let redirect_policy = Policy::custom(|attempt| {
+        //     // In the process of resolving the file url it might be necessary
+        //     // to stop at a certain level of redirection. This might be required
+        //     // because some hosts might redirect to a version of the url where
+        //     // it isn't possible to select the index file by appending .index.gz.
+        //     // (This mostly happens because CDNs redirect to the file hash.)
+        //     if attempt.previous().len() >= MAX_HTTP_REDIRECTS_ALLOWED {
+        //         attempt.error("too many redirections")
+        //     } else if let Some(segments) = attempt.url().clone().path_segments() {
+        //         let follow = segments
+        //             .last()
+        //             .map(|file| file.contains('.'))
+        //             .unwrap_or(true);
+        //         if follow {
+        //             attempt.follow()
+        //         } else {
+        //             attempt.stop()
+        //         }
+        //     } else {
+        //         attempt.follow()
+        //     }
+        // });
 
         let res = Client::builder()
-            .redirect(redirect_policy)
+            .redirect(Policy::default())
             .build()?
             .head(url)
             .send()?;
